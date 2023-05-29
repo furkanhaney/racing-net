@@ -1,3 +1,10 @@
+.vscode/
+*.jpg
+*.csv
+*.mp4
+code.json
+encode.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
