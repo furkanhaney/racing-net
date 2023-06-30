@@ -1,64 +1,60 @@
 import cv2
 import pandas as pd
+import torch
+import random
 from tqdm import tqdm
+from model import RacingNet
+from torchvision import transforms
+from PIL import Image
 
-
-# Define the video file
-video_path = "videos/gt7_vid1.mp4"
+video_id = 9
+video_path = "videos/20230627_171910.mp4"
 cap = cv2.VideoCapture(video_path)
+START_MIN = 0
+SELECT_PROB = 1/30.0  # Probability to select each frame
+FLIP_HORIZONTAL = False
 
-START_MIN = 6  # Start from 0th minute
-FREQ = 240  # Frequency to save frames
+transform = transforms.Compose([
+    transforms.Resize((512, 512)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
 
-# Get the total number of frames in the video
 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-# Compute the starting frame
 start_frame = START_MIN * 60 * int(cap.get(cv2.CAP_PROP_FPS))
+total_frames -= start_frame
+cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
 
-# Adjust total frames
-total_frames = total_frames - start_frame
+pbar = tqdm(total=total_frames)
 
 frame_count = 0
 frames_data = []
 
-# Set the video capture to the start frame
-cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-
-# Create a progress bar
-pbar = tqdm(total=total_frames)
-
 while cap.isOpened():
     ret, frame = cap.read()
-
     if ret:
-        if frame_count % FREQ == 0:  # Take every FREQth frame
-            # Frame file path
-            frame_file = f"data/frames/frame_00_{str(frame_count + start_frame).zfill(5)}.jpg"
+        if FLIP_HORIZONTAL:
+            frame = cv2.flip(frame, 1)
 
-            # Write the frame to a JPG file
+        # Select frame with probability 1/n
+        if random.random() < SELECT_PROB:
+            frame_file = f"data/frames/frame_{video_id:02d}_{str(frame_count + start_frame).zfill(5)}.jpg"
             cv2.imwrite(frame_file, frame)
 
-            # Get the timestamp of the current frame (in seconds)
+            frame = Image.fromarray(frame)
             timestamp = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
 
-            # Save the frame data
-            frames_data.append({
-                'frame_file': frame_file,
-                'timestamp': timestamp,
-            })
+            frames_data.append({'frame_file': frame_file, 'timestamp': timestamp})
 
         frame_count += 1
         pbar.update(1)
     else:
         break
 
-# When everything is done, release the capture
 cap.release()
 pbar.close()
 
-# Convert the list to a pandas DataFrame and then to CSV
 df = pd.DataFrame(frames_data)
-df.to_csv("data/frames_data.csv")
+df.to_csv(f"data/frames_data_{video_id:02d}.csv")
 
 print('Processing done.')

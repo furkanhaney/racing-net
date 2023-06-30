@@ -1,34 +1,29 @@
 import os
-import shutil
 import pandas as pd
+from PIL import Image
+from tqdm import tqdm
 
-# Source paths
-source_frames_dir = 'data/frames'
-source_csv_file = 'data/frames_data.csv'
+# Set parameters
+image_width = 512
+image_height = 512
+data_file = "data/data.xlsx"
+dest_dir = "dataset/frames"
 
-# Destination paths
-dest_dir = 'dataset/'
-dest_frames_dir = os.path.join(dest_dir, 'frames')
-dest_csv_file = os.path.join(dest_dir, 'frames_data.csv')
+df = pd.read_excel(data_file)
+df = df[df["speed"].notna()]
 
-# Create destination directories if they do not exist
-os.makedirs(dest_frames_dir, exist_ok=True)
+os.makedirs(dest_dir, exist_ok=True)
 
-# Load the frame data
-df = pd.read_csv(source_csv_file)
+new_images = 0
 
-# Copy only the frames that were used
-for _, row in df.iterrows():
-    # Get the source frame file
-    source_frame_file = row['frame_file']
+for index, row in tqdm(df.iterrows(), total=len(df)):
+    dest_frame_file = os.path.join(dest_dir, os.path.basename(row["frame_file"]))
 
-    # Construct the destination frame file path
-    dest_frame_file = os.path.join(dest_frames_dir, os.path.basename(source_frame_file))
+    if os.path.exists(dest_frame_file):
+        continue
+    img = Image.open(row["frame_file"])
+    img_resized = img.resize((image_width, image_height))
+    img_resized.save(dest_frame_file)
+    new_images += 1
 
-    # Copy the frame file
-    shutil.copy2(source_frame_file, dest_frame_file)
-
-# Copy the csv file
-shutil.copy2(source_csv_file, dest_csv_file)
-
-print('Dataset creation done.')
+print(f"Added {new_images} new images.")

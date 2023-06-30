@@ -1,6 +1,8 @@
 
 # Racing Data Analysis with Deep Learning
 
+![](data/frames/frame_02_20880.jpg)
+
 This project contains a suite of scripts designed to create, train, and evaluate a deep learning model for racing data analysis.
 
 The model attempts to predict multiple outputs from input frames:
